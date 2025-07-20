@@ -1,5 +1,6 @@
 import random
 from collections import Counter
+from typing import List, Dict, Optional
 from constant import (
     CATEGORIES, VALUES, NUM_SIDES,
     UPPER_SECTION_BONUS_THRESHOLD, UPPER_SECTION_BONUS_SCORE,
@@ -9,15 +10,15 @@ from constant import (
     CATEGORY_YAHTZEE, CATEGORY_CHANCE
 )
 
-def roll(n):
+def roll(n: int) -> List[int]:
     return [
         random.randint(1, NUM_SIDES) for _ in range(n)
     ]
 
-def calc_upper(dice, val):
-    return dice.count(val) * val
+def calc_upper(dice: List[int], val: int) -> int:
+    return dice.count(val)*val
 
-def calc_n_of_kind(dice, n):
+def calc_n_of_kind(dice: List[int], n: int) -> int:
     cnts = Counter(dice)
     if any(
         cnt >= n for cnt in cnts.values()
@@ -25,11 +26,11 @@ def calc_n_of_kind(dice, n):
         return sum(dice)
     return 0
 
-def calc_full_house(dice):
+def calc_full_house(dice: List[int]) -> int:
     cnts = Counter(dice)
     return FULL_HOUSE_SCORE if sorted(cnts.values()) == [2, 3] else 0
 
-def calc_str(dice, length):
+def calc_str(dice: List[int], length: int) -> int:
     uniq = sorted(list(set(dice)))
     if len(uniq) < length:
         return 0
@@ -46,19 +47,19 @@ def calc_str(dice, length):
     return 0
 
 
-def calc_yahtzee(dice):
+def calc_yahtzee(dice: List[int]) -> int:
     return YAHTZEE_SCORE if len(set(dice)) == 1 else 0
 
 class Scorecard:    
     def __init__(self):
-        self.scores = {
+        self.scores: Dict[str, Optional[int]] = {
             cat: None for sec in CATEGORIES.values() for cat in sec
         }
 
-    def is_cat_used(self, cat):
+    def is_cat_used(self, cat: str) -> bool:
         return self.scores[cat] is not None
 
-    def rec_score(self, cat, dice):
+    def rec_score(self, cat: str, dice: List[int]) -> bool:
         if self.is_cat_used(cat):
             print("warning: category %s already used." % cat)
             return False
@@ -77,12 +78,12 @@ class Scorecard:
         self.scores[cat] = score
         return True
 
-    def get_upper(self):
+    def get_upper(self) -> int:
         return sum(
             self.scores[cat] for cat in CATEGORIES[SECTION_UPPER] if self.scores[cat] is not None
         )
 
-    def get_total(self):
+    def get_total(self) -> int:
         upper = self.get_upper()
         bonus = UPPER_SECTION_BONUS_SCORE if upper >= UPPER_SECTION_BONUS_THRESHOLD else 0
         lower = sum(
@@ -90,7 +91,7 @@ class Scorecard:
         )
         return upper + bonus + lower
 
-    def get_avail_cats(self):
+    def get_avail_cats(self) -> List[str]:
         return [
             cat for cat, score in self.scores.items() 
             if score is None

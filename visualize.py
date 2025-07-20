@@ -1,28 +1,36 @@
 import numpy as np
-from strats import STRATEGIES
 import matplotlib.pyplot as plt
-from sim import game_run
-from collections import defaultdict
 import os
+from typing import Dict, Any
 from constant import (
     DEFAULT_VISUALIZATION_GAMES, DETAILED_FIGURE_WIDTH, DETAILED_FIGURE_HEIGHT,
     HIST_BINS, RUNNING_AVG_WINDOW, STRATEGIES_DIR
 )
+from strats import STRATEGIES
+from util import game_run, calc_stats, calc_cat_stats, print_strategy_list
 
-def vis_strat_perf(strat, n_games=DEFAULT_VISUALIZATION_GAMES):
+def vis_strat_perf(strat: str, n_games: int = DEFAULT_VISUALIZATION_GAMES) -> Dict[str, Any]:
     print("analyzing %s over %d games.." % (strat, n_games))
     
     res = [game_run(strat) for _ in range(n_games)]
-    scs = [r["score"] for r in res]
+    stats = calc_stats(res)
+    cat_stats = calc_cat_stats(res)
     
-    cat_scs = defaultdict(list)
+    scs = stats["scores"]
+    cat_scs = dict()
+    cat_use = dict()
+    
     for r in res:
         for cat, sc in r["all_scores"].items():
             if sc is not None:
+                if cat not in cat_scs:
+                    cat_scs[cat] = []
                 cat_scs[cat].append(sc)
+        
+        for cat in r["cats"]:
+            cat_use[cat] = cat_use.get(cat, 0) + 1
     
     fig = plt.figure(figsize=(DETAILED_FIGURE_WIDTH, DETAILED_FIGURE_HEIGHT))
-    
     ax1 = fig.add_subplot(2, 2, 1)
     ax1.hist(scs, bins=HIST_BINS, color='skyblue', edgecolor='black')
     ax1.set_title('%s score distribution' % strat)
@@ -47,11 +55,6 @@ def vis_strat_perf(strat, n_games=DEFAULT_VISUALIZATION_GAMES):
     ax2.set_xlabel('average score')
     
     ax3 = fig.add_subplot(2, 2, 3)
-    cat_use = defaultdict(int)
-    for r in res:
-        for cat in r["cats"]:
-            cat_use[cat] += 1
-    
     cats = list(cat_use.keys())
     uses = [cat_use[cat] for cat in cats]
     
@@ -94,23 +97,21 @@ def vis_strat_perf(strat, n_games=DEFAULT_VISUALIZATION_GAMES):
     print("upper section bonus rate: %.2f%%" % bonus_pct)
     print("yahtzee success rate: %.2f%%" % ytz_pct)
     
-    return {
-        "scs": scs,
-        "cat_scs": cat_scs,
-        "cat_use": cat_use
-    }
+    return stats
 
 print("yahtzee strategy visualization tool")
-print("\navailable strategies:")
+print_strategy_list()
 
 strats = list(STRATEGIES.keys())
-for i, s in enumerate(strats):
-    print("%d. %s" % (i+1, s))
-
-idx = int(input("\nselect a strategy to visualize (number): ")) - 1
-n = int(input("number of games to simulate (default: %d): " % DEFAULT_VISUALIZATION_GAMES) or str(DEFAULT_VISUALIZATION_GAMES))
-
-if 0 <= idx < len(strats):
-    vis_strat_perf(strats[idx], n)
-else:
-    print("invalid strategy selection.")
+try:
+    idx = int(input("\nselect a strategy to visualize (number): ")) - 1
+    if 0 <= idx < len(strats):
+        n = input("number of games to simulate (default: %d): " % DEFAULT_VISUALIZATION_GAMES)
+        n = int(n) if n else DEFAULT_VISUALIZATION_GAMES
+        vis_strat_perf(strats[idx], n)
+    else:
+        print("invalid strategy selection.")
+except ValueError:
+    print("please enter a valid number")
+except KeyboardInterrupt:
+    print("\nexiting..")

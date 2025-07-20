@@ -1,22 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from sim import game_run
-from strats import STRATEGIES
-from collections import defaultdict
 import os
+from collections import defaultdict
+from typing import Dict, List, Tuple, Any
 from constant import (
     DEFAULT_HEAD_TO_HEAD_GAMES, DEFAULT_VISUALIZATION_GAMES, DEFAULT_TOURNAMENT_GAMES,
-    FIGURE_WIDTH, FIGURE_HEIGHT, TOURNAMENT_DIR, TOURNAMENT_RESULTS_FILE,
-    LOWER_QUARTILE, UPPER_QUARTILE
+    FIGURE_WIDTH, FIGURE_HEIGHT, TOURNAMENT_DIR, TOURNAMENT_RESULTS_FILE
 )
+from strats import STRATEGIES
+from util import game_run, calc_stats, calc_cat_stats, print_strategy_list, get_valid_int
 
-def head_to_head(s1, s2, n_games=DEFAULT_HEAD_TO_HEAD_GAMES):
+def head_to_head(s1: str, s2: str, n_games: int = DEFAULT_HEAD_TO_HEAD_GAMES) -> Tuple[Dict[str, int], List[int]]:
     print("running head-to-head: %s vs %s" % (s1, s2))
-    wins = {
+    wins: Dict[str, int] = {
         s1: 0,
         s2: 0, "tie": 0
     }
-    diffs = list()
+    diffs: List[int] = list()
     for __ in range(n_games):
         sc1 = game_run(s1)['score']
         sc2 = game_run(s2)['score']
@@ -36,37 +36,57 @@ def head_to_head(s1, s2, n_games=DEFAULT_HEAD_TO_HEAD_GAMES):
     
     return wins, diffs
 
-def analyze_consist(strat, n_games=DEFAULT_VISUALIZATION_GAMES):
+def analyze_consist(strat: str, n_games: int = DEFAULT_VISUALIZATION_GAMES) -> Dict[str, Any]:
     print("analyzing consistency for %s.." % strat)
-    scs = []
-    cat_use = defaultdict(int)
-    for __ in range(n_games):
-        res = game_run(strat)
-        scs.append(res["score"])
-        for cat in res["cats"]:
-            cat_use[cat] += 1
-    q1 = np.percentile(scs, LOWER_QUARTILE)
-    q3 = np.percentile(scs, UPPER_QUARTILE)
-    iqr = q3 - q1
-    tot = sum(cat_use.values())
-    cat_pcts = {cat: cnt/tot*100 for cat, cnt in cat_use.items()}
+    res = [game_run(strat) for _ in range(n_games)]
+    stats = calc_stats(res)
+    cat_stats = calc_cat_stats(res)
+    cat_turns = defaultdict(list)
+    for r in res:
+        for turn, cat in enumerate(r["cats"]):
+            cat_turns[cat].append(turn + 1)
+    
     print("\nconsistency analysis for %s:" % strat)
-    print("interquartile range (iqr): %.2f" % iqr)
-    print("25th percentile: %.2f" % q1)
-    print("75th percentile: %.2f" % q3)
-    print("coefficient of variation: %.2f%%" % (np.std(scs)/np.mean(scs)*100))
+    print("interquartile range (iqr): %.2f" % (stats["q3"] - stats["q1"]))
+    print("25th percentile: %.2f" % stats["q1"])
+    print("75th percentile: %.2f" % stats["q3"])
+    print("coefficient of variation: %.2f%%" % stats["cv"])
+    
     print("\ncategory usage patterns:")
-    for cat, pct in sorted(cat_pcts.items(), key=lambda x: x[1], reverse=True):
-        print("\t%s: %.2f%%" % (cat, pct))
-    return {
-        "iqr": iqr,
-        "q1": q1,
-        "q3": q3,
-        "cv": np.std(scs)/np.mean(scs)*100,
-        "cat_use": cat_pcts
-    }
+    for cat in sorted(cat_stats["scores"].keys()):
+        avg_score = cat_stats["scores"][cat]
+        avg_turn = np.mean(cat_turns[cat])
+        print("\t%s: avg score %.2f, avg turn %.1f" % (cat, avg_score, avg_turn))
+    
+    print("\ncategory turn distribution (when each category is typically used):")
+    early_cats = list()
+    mid_cats = list()
+    late_cats = list()
+    
+    for cat, turns in cat_turns.items():
+        avg_turn = np.mean(turns)
+        if avg_turn <= 4:
+            early_cats.append((cat, avg_turn))
+        elif avg_turn <= 9:
+            mid_cats.append((cat, avg_turn))
+        else:
+            late_cats.append((cat, avg_turn))
+    
+    print("\tearly game (turns 1-4):")
+    for cat, avg in sorted(early_cats, key=lambda x: x[1]):
+        print("\t\t%s: turn %.1f" % (cat, avg))
+        
+    print("\tmid game (turns 5-9):")
+    for cat, avg in sorted(mid_cats, key=lambda x: x[1]):
+        print("\t\t%s: turn %.1f" % (cat, avg))
+        
+    print("\tlate game (turns 10-13):")
+    for cat, avg in sorted(late_cats, key=lambda x: x[1]):
+        print("\t\t%s: turn %.1f" % (cat, avg))
+    
+    return stats
 
-def tournament_start(n_games=DEFAULT_TOURNAMENT_GAMES):
+def tournament_start(n_games: int = DEFAULT_TOURNAMENT_GAMES) -> Tuple[np.ndarray, np.ndarray]:
     strats = list(STRATEGIES.keys())
     n = len(strats)
     res = np.zeros((n,n))
@@ -111,25 +131,37 @@ print("2.) analyze strategy consistency")
 print("3.) run full tournament")
 print("4.) exit")
 
-choice = input("\nenter your choice (1-4): ")
-
-if choice == "1":
-    print("\navailable strategies:")
-    for i,s in enumerate(STRATEGIES.keys()):
-        print("%d. %s" % (i+1,s))
-    idx1 = int(input("\nselect first strategy (number): ")) - 1
-    idx2 = int(input("select second strategy (number): ")) - 1
-    strats = list(STRATEGIES.keys())
-    head_to_head(strats[idx1],strats[idx2], DEFAULT_HEAD_TO_HEAD_GAMES)
-    
-elif choice == "2":
-    print("\navailable strategies:")
-    for i, s in enumerate(STRATEGIES.keys()):
-        print("%d. %s" % (i+1, s))
-    idx = int(input("\nselect strategy to analyze (number): ")) - 1
-    strats = list(STRATEGIES.keys())
-    analyze_consist(strats[idx], DEFAULT_VISUALIZATION_GAMES)
-elif choice == "3":
-    tournament_start(DEFAULT_TOURNAMENT_GAMES)
-else:
-    print("exiting..")
+try:
+    while True:
+        choice = input("\nenter your choice (1-4): ")
+        if choice not in ["1", "2", "3", "4"]:
+            print("please enter a number between 1 and 4")
+            continue
+        if choice == "1":
+            print_strategy_list()
+            strats = list(STRATEGIES.keys())
+            idx1 = get_valid_int("\nselect first strategy (number): ", 1, len(strats)) - 1
+            idx2 = get_valid_int("select second strategy (number): ", 1, len(strats)) - 1
+            if idx1 == idx2:
+                print("please select two different strategies")
+                continue
+            head_to_head(strats[idx1], strats[idx2], DEFAULT_HEAD_TO_HEAD_GAMES)
+            break
+        elif choice == "2":
+            print_strategy_list()
+            strats = list(STRATEGIES.keys())
+            
+            idx = get_valid_int("\nselect strategy to analyze (number): ", 1, len(strats)) - 1
+            analyze_consist(strats[idx], DEFAULT_VISUALIZATION_GAMES)
+            break
+            
+        elif choice == "3":
+            tournament_start(DEFAULT_TOURNAMENT_GAMES)
+            break
+            
+        elif choice == "4":
+            print("exiting..")
+            break
+            
+except KeyboardInterrupt:
+    print("\nexiting..")

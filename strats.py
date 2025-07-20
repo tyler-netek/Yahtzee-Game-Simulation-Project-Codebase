@@ -1,6 +1,9 @@
 from collections import Counter
-from logic import (calc_upper, calc_n_of_kind, calc_full_house, 
-                        calc_str, calc_yahtzee)
+from typing import List, Dict, Callable
+from logic import (
+    calc_upper, calc_n_of_kind, calc_full_house, 
+    calc_str, calc_yahtzee, Scorecard
+)
 from constant import (
     VALUES, CATEGORIES, SECTION_UPPER, SECTION_LOWER,
     CATEGORY_ACES, CATEGORY_TWOS,
@@ -9,7 +12,7 @@ from constant import (
     UPPER_SECTION_BONUS_THRESHOLD
 )
 
-def upper_strat_re(dice, card):
+def upper_strat_re(dice: List[int], card: Scorecard) -> List[int]:
     avail = [
         cat for cat in CATEGORIES[SECTION_UPPER] if not card.is_cat_used(cat)
     ]
@@ -23,7 +26,7 @@ def upper_strat_re(dice, card):
             return [d for d in dice if d == v]
     return []
 
-def upper_strat_turn(dice, card):
+def upper_strat_turn(dice: List[int], card: Scorecard) -> str:
     avail = card.get_avail_cats()
     best_cat = None
     best_sc = -1
@@ -49,7 +52,7 @@ def upper_strat_turn(dice, card):
             return cat
     return avail[0]
 
-def hybrid_strat_re(dice, card):
+def hybrid_strat_re(dice: List[int], card: Scorecard) -> List[int]:
     cnts = Counter(dice)
     if 5 in cnts.values(): return dice
     if 4 in cnts.values():
@@ -78,10 +81,10 @@ def hybrid_strat_re(dice, card):
     return [max(dice)]
 
 
-def hybrid_strat_turn(dice, card):
+def hybrid_strat_turn(dice: List[int], card: Scorecard) -> str:
     avail = card.get_avail_cats()
     
-    scs = {}
+    scs = dict()
     if CATEGORY_YAHTZEE in avail: scs[CATEGORY_YAHTZEE] = calc_yahtzee(dice)
     if CATEGORY_LARGE_STRAIGHT in avail: scs[CATEGORY_LARGE_STRAIGHT] = calc_str(dice, 5)
     if CATEGORY_SMALL_STRAIGHT in avail: scs[CATEGORY_SMALL_STRAIGHT] = calc_str(dice, 4)
@@ -108,19 +111,18 @@ def hybrid_strat_turn(dice, card):
     if CATEGORY_ACES in avail: return CATEGORY_ACES
     if CATEGORY_TWOS in avail: return CATEGORY_TWOS
     if CATEGORY_CHANCE in avail: return CATEGORY_CHANCE
-    
     return avail[0]
 
-def win_or_bust_re(dice, card):
+def win_or_bust_re(dice: List[int], card: Scorecard) -> List[int]:
     cnts = Counter(dice)
     most = cnts.most_common(1)
     if most:
         val, cnt = most[0]
         if cnt >= 2:
             return [d for d in dice if d == val]
-    return [max(dice)] if dice else []
+    return [max(dice)] if dice else list()
 
-def win_or_bust_turn(dice, card):
+def win_or_bust_turn(dice: List[int], card: Scorecard) -> str:
     avail = card.get_avail_cats()
     
     if CATEGORY_YAHTZEE in avail and calc_yahtzee(dice) > 0:
@@ -143,7 +145,7 @@ def win_or_bust_turn(dice, card):
     
     return avail[0]
 
-def low_priority_re(dice, card):
+def low_priority_re(dice: List[int], card: Scorecard) -> List[int]:
     cnts = Counter(dice)
     uniq = sorted(list(set(dice)))
     
@@ -177,7 +179,7 @@ def low_priority_re(dice, card):
     
     return [max(dice)] if dice else []
 
-def low_priority_turn(dice, card):
+def low_priority_turn(dice: List[int], card: Scorecard) -> str:
     avail = card.get_avail_cats()
     
     pri = [CATEGORY_YAHTZEE, CATEGORY_LARGE_STRAIGHT, CATEGORY_SMALL_STRAIGHT, CATEGORY_FULL_HOUSE, 
@@ -211,7 +213,7 @@ def low_priority_turn(dice, card):
     
     return avail[0]
 
-def adapt_strat_re(dice, card):
+def adapt_strat_re(dice: List[int], card: Scorecard) -> List[int]:
     filled = sum(1 for sc in card.scores.values() if sc is not None)
     
     if filled < 4:
@@ -221,7 +223,7 @@ def adapt_strat_re(dice, card):
     else:
         return late_re(dice, card)
 
-def early_re(dice, card):
+def early_re(dice: List[int], card: Scorecard) -> List[int]:
     cnts = Counter(dice)
     uniq = sorted(list(set(dice)))
     
@@ -248,7 +250,7 @@ def early_re(dice, card):
     
     return [d for d in dice if cnts[d] > 1] or [max(dice)]
 
-def mid_re(dice, card):
+def mid_re(dice: List[int], card: Scorecard) -> List[int]:
     cnts = Counter(dice)
     up_sc = card.get_upper()
     up_filled = sum(1 for cat in CATEGORIES[SECTION_UPPER] if card.scores[cat] is not None)
@@ -281,7 +283,7 @@ def mid_re(dice, card):
     
     return [max(dice)]
 
-def late_re(dice, card):
+def late_re(dice: List[int], card: Scorecard) -> List[int]:
     avail = card.get_avail_cats()
     cnts = Counter(dice)
     
@@ -308,7 +310,7 @@ def late_re(dice, card):
     
     return sorted(dice, reverse=True)[:3]
 
-def adapt_strat_turn(dice, card):
+def adapt_strat_turn(dice: List[int], card: Scorecard) -> str:
     avail = card.get_avail_cats()
     filled = sum(1 for sc in card.scores.values() if sc is not None)
     
@@ -344,20 +346,23 @@ def adapt_strat_turn(dice, card):
             if up_scs and max(up_scs.values()) >= avg_need:
                 return max(up_scs, key=up_scs.get)
         
-        good = {k: v for k, v in scs.items() if v > 0}
+        good = {
+            k: v for k, v in scs.items() if v > 0
+        }
         if good:
             return max(good, key=good.get)
     
     else:
-        good = {k: v for k, v in scs.items() if v > 0}
+        good = {
+            k: v for k, v in scs.items() if v > 0
+        }
         if good:
             return max(good, key=good.get)
     if scs:
         return min(scs, key=scs.get)
-    
     return avail[0]
 
-STRATEGIES = {
+STRATEGIES: Dict[str, Dict[str, Callable]] = {
     "greedy upper section": {
         "reroll": upper_strat_re,
         "score": upper_strat_turn
