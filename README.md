@@ -18,6 +18,7 @@ pip3 install matplotlib numpy
 
 1.) **greedy upper section** - 
 focuses on maximizing upper section scores to get the 35-point bonus
+
 2.) **hybrid probability** - 
 balances between upper and lower section opportunities
 3.) **yahtzee or bust** - 
