@@ -363,23 +363,23 @@ def adapt_strat_turn(dice: List[int], card: Scorecard) -> str:
     return avail[0]
 
 STRATEGIES: Dict[str, Dict[str, Callable]] = {
-    "greedy upper section": {
+    "Greedy Upper Section": {
         "reroll": upper_strat_re,
         "score": upper_strat_turn
     },
-    "hybrid probability": {
+    "Hybrid Probability": {
         "reroll": hybrid_strat_re,
         "score": hybrid_strat_turn
     },
-    "yahtzee or bust": {
+    "Yahtzee or Bust": {
         "reroll": win_or_bust_re,
         "score": win_or_bust_turn
     },
-    "lower section priority": {
+    "Lower Section Priority": {
         "reroll": low_priority_re,
         "score": low_priority_turn
     },
-    "adaptive strategy": {
+    "Adaptive Strategy": {
         "reroll": adapt_strat_re,
         "score": adapt_strat_turn
     }

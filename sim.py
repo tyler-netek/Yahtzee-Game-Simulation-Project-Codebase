@@ -14,17 +14,17 @@ def res_analyze(res: List[Dict[str, Any]], strat_name: str) -> Dict[str, Any]:
     stats = calc_stats(res)
     cat_stats = calc_cat_stats(res)
     
-    print("\nanalysis for strategy: " + strat_name)
-    print("basic statistics:")
-    print("\taverage score: %.2f" % stats["avg"])
-    print("\tmedian score: %.2f" % stats["med"])
-    print("\tstandard deviation: %.2f" % stats["std"])
-    print("\tmin score: %d/max score: %d" % (stats["min"], stats["max"]))
-    print("\tupper section bonus rate: %.2f%%" % stats["bonus_pct"])
-    print("\tyahtzee success rate: %.2f%%" % stats["ytz_pct"])
-    print("\ncategory usage patterns:")
+    print("\nAnalysis for strategy: " + strat_name)
+    print("Basic statistics:")
+    print("\tAverage score: %.2f" % stats["avg"])
+    print("\tMedian score: %.2f" % stats["med"])
+    print("\tStandard deviation: %.2f" % stats["std"])
+    print("\tMin score: %d/max score: %d" % (stats["min"], stats["max"]))
+    print("\tUpper section bonus rate: %.2f%%" % stats["bonus_pct"])
+    print("\tYahtzee success rate: %.2f%%" % stats["ytz_pct"])
+    print("\nCategory usage patterns:")
     for sec, cats in CATEGORIES.items():
-        print("\t%s section:" % sec.lower())
+        print("\t%s Section:" % sec.lower())
         for c in cats:
             use_pct = cat_stats["usage"].get(c, 0)
             avg_score = cat_stats["scores"].get(c, 0)
@@ -36,13 +36,13 @@ def plot_dist(stats: Dict[str, Dict[str, Any]]) -> None:
     plt.figure(figsize=(FIGURE_WIDTH, FIGURE_HEIGHT))
     for name, s in stats.items():
         plt.hist(s["scores"], bins=HIST_BINS, alpha=0.5, label=name)
-    plt.title("score distribution by strategy")
-    plt.xlabel("score")
-    plt.ylabel("frequency")
+    plt.title("Score distribution by strategy")
+    plt.xlabel("Score")
+    plt.ylabel("Frequency")
     plt.legend()
     out = os.path.join(COMPARISON_DIR, SCORE_DIST_FILE)
     plt.savefig(out)
-    print("\nscore distribution plot saved as '%s'" % out)
+    print("\nScore distribution plot saved as '%s'" % out)
 
 def plot_comp(stats: Dict[str, Dict[str, Any]]) -> None:
     strats = list(stats.keys())
@@ -68,26 +68,26 @@ def plot_comp(stats: Dict[str, Dict[str, Any]]) -> None:
 
 def run_sim() -> None:
     n_sims = DEFAULT_NUM_SIMULATIONS
-    print("running yahtzee simulation (%d games per strategy)\n" % n_sims)
+    print("Running Yahtzee simulation (%d games per strategy)\n" % n_sims)
 
     stats = dict()
 
     for name in STRATEGIES:
-        print("simulating %s strategy.." % name)
+        print("Simulating %s Strategy.." % name)
         res = [game_run(name) for _ in range(n_sims)]
         stats[name] = res_analyze(res, name)
 
-    print("\n\nstrategy comparison summary")
+    print("\n\nStrategy Comparison Summary")
     sorted_stats = sorted(stats.items(), reverse=True, key=lambda x: x[1]["avg"])
 
     for i, (name, s) in enumerate(sorted_stats):
         print("%d. %s:" % (i+1, name))
-        print("\taverage: %.2f ± %.2f" % (s['avg'], s['std']))
-        print("\tmedian: %.2f" % s['med'])
-        print("\tbonus rate: %.2f%%" % s['bonus_pct'])
-        print("\tyahtzee rate: %.2f%%" % s['ytz_pct'])
-        print("\trisk (std dev): %.2f" % s['std'])
-        print("\trange: %d - %d" % (s['min'], s['max']))
+        print("\tAverage: %.2f ± %.2f" % (s['avg'], s['std']))
+        print("\tMedian: %.2f" % s['med'])
+        print("\tBonus rate: %.2f%%" % s['bonus_pct'])
+        print("\tYahtzee rate: %.2f%%" % s['ytz_pct'])
+        print("\tRisk (std dev): %.2f" % s['std'])
+        print("\tRange: %d - %d" % (s['min'], s['max']))
 
     plot_dist(stats)
     plot_comp(stats)

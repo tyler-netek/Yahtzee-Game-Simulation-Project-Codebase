@@ -28,16 +28,16 @@ def head_to_head(s1: str, s2: str, n_games: int = DEFAULT_HEAD_TO_HEAD_GAMES) ->
             wins['tie'] += 1
         diffs.append(sc1 - sc2)
     
-    print("\nresults after %d games:" % n_games)
-    print("%s wins:%d (%.2f%%)" % (s1, wins[s1], wins[s1]/n_games*100))
-    print("%s wins: %d (%.2f%%)" % (s2, wins[s2], wins[s2]/n_games*100))
-    print("ties: %d(%.2f%%)" % (wins['tie'], wins['tie']/n_games*100))
-    print("average score difference: %.2f" % np.mean(diffs))
+    print("\nResults after %d games:" % n_games)
+    print("%s Wins:%d (%.2f%%)" % (s1, wins[s1], wins[s1]/n_games*100))
+    print("%s Wins: %d (%.2f%%)" % (s2, wins[s2], wins[s2]/n_games*100))
+    print("Ties: %d(%.2f%%)" % (wins['tie'], wins['tie']/n_games*100))
+    print("Average score difference: %.2f" % np.mean(diffs))
     
     return wins, diffs
 
 def analyze_consist(strat: str, n_games: int = DEFAULT_VISUALIZATION_GAMES) -> Dict[str, Any]:
-    print("analyzing consistency for %s.." % strat)
+    print("Analyzing consistency for %s.." % strat)
     res = [game_run(strat) for _ in range(n_games)]
     stats = calc_stats(res)
     cat_stats = calc_cat_stats(res)
@@ -46,19 +46,19 @@ def analyze_consist(strat: str, n_games: int = DEFAULT_VISUALIZATION_GAMES) -> D
         for turn, cat in enumerate(r["cats"]):
             cat_turns[cat].append(turn + 1)
     
-    print("\nconsistency analysis for %s:" % strat)
-    print("interquartile range (iqr): %.2f" % (stats["q3"] - stats["q1"]))
+    print("\nConsistency analysis for %s:" % strat)
+    print("Interquartile range (iqr): %.2f" % (stats["q3"] - stats["q1"]))
     print("25th percentile: %.2f" % stats["q1"])
     print("75th percentile: %.2f" % stats["q3"])
-    print("coefficient of variation: %.2f%%" % stats["cv"])
+    print("Coefficient of variation: %.2f%%" % stats["cv"])
     
-    print("\ncategory usage patterns:")
+    print("\nCategory usage patterns:")
     for cat in sorted(cat_stats["scores"].keys()):
         avg_score = cat_stats["scores"][cat]
         avg_turn = np.mean(cat_turns[cat])
         print("\t%s: avg score %.2f, avg turn %.1f" % (cat, avg_score, avg_turn))
     
-    print("\ncategory turn distribution (when each category is typically used):")
+    print("\nCategory turn distribution (when each category is typically used):")
     early_cats = list()
     mid_cats = list()
     late_cats = list()
@@ -72,15 +72,15 @@ def analyze_consist(strat: str, n_games: int = DEFAULT_VISUALIZATION_GAMES) -> D
         else:
             late_cats.append((cat, avg_turn))
     
-    print("\tearly game (turns 1-4):")
+    print("\tEarly game (turns 1-4):")
     for cat, avg in sorted(early_cats, key=lambda x: x[1]):
         print("\t\t%s: turn %.1f" % (cat, avg))
         
-    print("\tmid game (turns 5-9):")
+    print("\tMid game (turns 5-9):")
     for cat, avg in sorted(mid_cats, key=lambda x: x[1]):
         print("\t\t%s: turn %.1f" % (cat, avg))
         
-    print("\tlate game (turns 10-13):")
+    print("\tLate game (turns 10-13):")
     for cat, avg in sorted(late_cats, key=lambda x: x[1]):
         print("\t\t%s: turn %.1f" % (cat, avg))
     
@@ -98,7 +98,7 @@ def tournament_start(n_games: int = DEFAULT_TOURNAMENT_GAMES) -> Tuple[np.ndarra
             res[i,j] = wins[s1]/n_games * 100
             res[j,i] = wins[s2]/n_games * 100
     win_pcts = np.sum(res,axis=1)/(n-1)
-    print("\ntournament results:")
+    print("\nTournament results:")
     idxs = np.argsort(win_pcts)[::-1]
     for i,idx in enumerate(idxs):
         s = strats[idx]
@@ -121,29 +121,29 @@ def tournament_start(n_games: int = DEFAULT_TOURNAMENT_GAMES) -> Tuple[np.ndarra
     plt.tight_layout()
     out = os.path.join(TOURNAMENT_DIR, TOURNAMENT_RESULTS_FILE)
     plt.savefig(out)
-    print("\ntournament results heatmap saved as '%s'" % out)
+    print("\nTournament results heatmap saved as '%s'" % out)
     
     return res,win_pcts
 
-print("yahtzee strategy analysis tool")
-print("\n1.) run head-to-head comparison")
-print("2.) analyze strategy consistency")
-print("3.) run full tournament")
-print("4.) exit")
+print("Yahtzee strategy analysis tool")
+print("\n1.) Run head-to-head comparison")
+print("2.) Analyze strategy consistency")
+print("3.) Run full tournament")
+print("4.) Exit")
 
 try:
     while True:
-        choice = input("\nenter your choice (1-4): ")
+        choice = input("\nEnter your choice (1-4): ")
         if choice not in ["1", "2", "3", "4"]:
-            print("please enter a number between 1 and 4")
+            print("Please enter a number between 1 and 4")
             continue
         if choice == "1":
             print_strategy_list()
             strats = list(STRATEGIES.keys())
-            idx1 = get_valid_int("\nselect first strategy (number): ", 1, len(strats)) - 1
-            idx2 = get_valid_int("select second strategy (number): ", 1, len(strats)) - 1
+            idx1 = get_valid_int("\nSelect first strategy (number): ", 1, len(strats)) - 1
+            idx2 = get_valid_int("Select second strategy (number): ", 1, len(strats)) - 1
             if idx1 == idx2:
-                print("please select two different strategies")
+                print("Please select two different strategies")
                 continue
             head_to_head(strats[idx1], strats[idx2], DEFAULT_HEAD_TO_HEAD_GAMES)
             break
@@ -151,7 +151,7 @@ try:
             print_strategy_list()
             strats = list(STRATEGIES.keys())
             
-            idx = get_valid_int("\nselect strategy to analyze (number): ", 1, len(strats)) - 1
+            idx = get_valid_int("\nSelect strategy to analyze (number): ", 1, len(strats)) - 1
             analyze_consist(strats[idx], DEFAULT_VISUALIZATION_GAMES)
             break
             
@@ -159,9 +159,10 @@ try:
             tournament_start(DEFAULT_TOURNAMENT_GAMES)
             break
             
+            
         elif choice == "4":
-            print("exiting..")
+            print("Exiting..")
             break
             
 except KeyboardInterrupt:
-    print("\nexiting..")
+    print("\nExiting..")
